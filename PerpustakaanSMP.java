@@ -160,7 +160,7 @@ public class PerpustakaanSMP {
                 if (data.length >= 3 && data[0].equals(inputNip) && data[2].equals(inputPassword)) {
                     loggedInPegawai = data[1]; 
                     ditemukan = true;
-                    System.out.println("Login Berhasil! Selamat bekerja, " + loggedInPegawai);
+                    System.out.println("Login Berhasil! Selamat bekerja " + loggedInPegawai + " !");
                     break;
                 }
             }
@@ -487,49 +487,80 @@ public class PerpustakaanSMP {
     // ==========================================
 
     private static void transaksiPinjam() {
-        System.out.println("\n--- PEMINJAMAN BUKU ---");
-        System.out.print("Masukkan NIS Siswa: ");
-        String nis = scanner.nextLine().trim();
+    System.out.println("\n--- PEMINJAMAN BUKU ---");
+    System.out.print("Masukkan NIS Siswa: ");
+    String nis = scanner.nextLine().trim();
 
-        int jumlahPinjam = 0;
-        try (BufferedReader br = new BufferedReader(new FileReader(FILE_TRANSAKSI))) {
-            String baris;
-            while ((baris = br.readLine()) != null) {
-                String[] data = baris.split(",");
-                if (data.length >= 6) {
-                    if (data[1].equals(nis) && data[5].equals("0")) {
-                        jumlahPinjam++;
-                    }
+    int jumlahPinjam = 0;
+
+    try (BufferedReader br = new BufferedReader(new FileReader(FILE_TRANSAKSI))) {
+        String baris;
+
+        while ((baris = br.readLine()) != null) {
+            String[] data = baris.split(",");
+
+            if (data.length >= 6) {
+                if (data[1].equals(nis) && data[5].equals("0")) {
+                    jumlahPinjam++;
                 }
             }
-        } catch (IOException e) {
-            System.out.println("Gagal mengecek batas pinjam: " + e.getMessage());
         }
 
-        if (jumlahPinjam >= 2) {
-            System.out.println("DITOLAK: Siswa ini sedang meminjam 2 buku dan belum dikembalikan. Batas maksimal tercapai!");
-            return;
-        }
-
-        System.out.print("Masukkan Kode Buku: ");
-        String kodeBuku = scanner.nextLine().trim();
-        
-        System.out.print("Lama Pinjam (hari, misal: 7): ");
-        int lamaPinjam = Integer.parseInt(scanner.nextLine().trim());
-
-        String kodeTransaksi = "TRX" + System.currentTimeMillis(); 
-        LocalDate tglPinjam = LocalDate.now();
-        LocalDate tglKembali = tglPinjam.plusDays(lamaPinjam);
-        
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
-        String dataTrx = kodeTransaksi + "," + nis + "," + kodeBuku + "," + 
-                         tglPinjam.format(fmt) + "," + tglKembali.format(fmt) + ",0";
-        
-        tulisKeFile(FILE_TRANSAKSI, dataTrx);
-        System.out.println("Peminjaman berhasil! Kode Transaksi: " + kodeTransaksi);
-        System.out.println("Batas kembali: " + tglKembali.format(fmt));
+    } catch (IOException e) {
+        System.out.println("Gagal mengecek data transaksi: " + e.getMessage());
     }
+
+    if (jumlahPinjam >= 2) {
+        System.out.println("DITOLAK: Siswa sudah meminjam 2 buku!");
+        return;
+    }
+
+    System.out.print("Masukkan Kode Buku: ");
+    String kodeBuku = scanner.nextLine().trim();
+
+    System.out.print("Lama Pinjam (hari): ");
+    int lamaPinjam = Integer.parseInt(scanner.nextLine().trim());
+
+    // KODE TRANSAKSI BARU
+    String kodeTransaksi = generateKodeTransaksi();
+
+    LocalDate tglPinjam = LocalDate.now();
+    LocalDate tglKembali = tglPinjam.plusDays(lamaPinjam);
+
+    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    String dataBaru =
+            kodeTransaksi + "," +
+            nis + "," +
+            kodeBuku + "," +
+            tglPinjam.format(fmt) + "," +
+            tglKembali.format(fmt) + ",0";
+
+    tulisKeFile(FILE_TRANSAKSI, dataBaru);
+
+    System.out.println("Peminjaman berhasil!");
+    System.out.println("Kode Transaksi : " + kodeTransaksi);
+    System.out.println("Tanggal Pinjam : " + tglPinjam.format(fmt));
+    System.out.println("Batas Kembali  : " + tglKembali.format(fmt));
+}
+
+
+// =====================================
+// METHOD BARU UNTUK AUTO KODE TRX
+// =====================================
+private static String generateKodeTransaksi() {
+    int nomor = 1;
+
+    try (BufferedReader br = new BufferedReader(new FileReader(FILE_TRANSAKSI))) {
+        while (br.readLine() != null) {
+            nomor++;
+        }
+    } catch (IOException e) {
+        // abaikan jika file kosong
+    }
+
+    return String.format("TRX-%02d", nomor);
+}
 
     private static void transaksiKembali() {
         System.out.println("\n--- PENGEMBALIAN BUKU ---");
@@ -572,43 +603,80 @@ public class PerpustakaanSMP {
     // ==========================================
 
     private static void lihatLaporan() {
-        System.out.println("\n--- LAPORAN BUKU BELUM DIKEMBALIKAN & JATUH TEMPO ---");
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-        LocalDate hariIni = LocalDate.now();
-        boolean adaData = false;
-        String border = "";
-        for(int i = 0; i < 88; i++) border += "-";
+    System.out.println("\n--- LAPORAN BUKU BELUM DIKEMBALIKAN & JATUH TEMPO ---");
 
-        System.out.println(border);
-        System.out.printf("| %-18s | %-12s | %-12s | %-15s | %-15s |\n", "Kode Trx", "NIS", "Kode Buku", "Batas Kembali", "Status Denda");
-        System.out.println(border);
+    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    LocalDate hariIni = LocalDate.now();
+    boolean adaData = false;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(FILE_TRANSAKSI))) {
-            String baris;
-            while ((baris = br.readLine()) != null) {
-                String[] data = baris.split(",");
-                if (data.length >= 6 && data[5].equals("0")) { 
-                    adaData = true;
-                    LocalDate tglKembali = LocalDate.parse(data[4], fmt);
-                    String statusDenda = "Aman";
-                    
-                    if (hariIni.isAfter(tglKembali)) {
-                        long telatHari = ChronoUnit.DAYS.between(tglKembali, hariIni);
-                        statusDenda = "Telat " + telatHari + " hari";
-                    }
+    String border =
+    "------------------------------------------------------------------------------------------------------------";
 
-                    System.out.printf("| %-18s | %-12s | %-12s | %-15s | %-15s |\n", 
-                                      data[0], data[1], data[2], data[4], statusDenda);
+    System.out.println(border);
+    System.out.printf("| %-10s | %-12s | %-20s | %-12s | %-15s | %-15s |\n",
+            "Kode Trx", "NIS", "Nama Siswa", "Kode Buku", "Batas Kembali", "Status");
+
+    System.out.println(border);
+
+    try (BufferedReader br = new BufferedReader(new FileReader(FILE_TRANSAKSI))) {
+
+        String baris;
+
+        while ((baris = br.readLine()) != null) {
+            String[] data = baris.split(",");
+
+            if (data.length >= 6 && data[5].equals("0")) {
+
+                adaData = true;
+
+                String nis = data[1];
+                String nama = cariNamaSiswa(nis);
+                String kodeBuku = data[2];
+                String batasKembali = data[4];
+
+                LocalDate tglKembali = LocalDate.parse(batasKembali, fmt);
+
+                String status = "Tidak";
+
+                if (hariIni.isAfter(tglKembali)) {
+                    status = "Ya";
                 }
+
+                System.out.printf("| %-10s | %-12s | %-20s | %-12s | %-15s | %-15s |\n",
+                        data[0], nis, nama, kodeBuku, batasKembali, status);
             }
-            if (!adaData) {
-                System.out.printf("| %-84s |\n", "Semua buku telah dikembalikan dengan tertib.");
-            }
-            System.out.println(border);
-        } catch (IOException | DateTimeParseException e) {
-            System.out.println("Error membuat laporan: " + e.getMessage());
         }
+
+        if (!adaData) {
+            System.out.printf("| %-106s |\n",
+                    "Semua buku telah dikembalikan.");
+        }
+
+        System.out.println(border);
+
+    } catch (Exception e) {
+        System.out.println("Error membuat laporan: " + e.getMessage());
     }
+}
+private static String cariNamaSiswa(String nisCari) {
+
+    try (BufferedReader br = new BufferedReader(new FileReader(FILE_SISWA))) {
+
+        String baris;
+
+        while ((baris = br.readLine()) != null) {
+            String[] data = baris.split(",");
+
+            if (data.length >= 2 && data[0].equals(nisCari)) {
+                return data[1];
+            }
+        }
+
+    } catch (IOException e) {
+    }
+
+    return "Tidak Ditemukan";
+}
 
     // ==========================================
     // 6. UTILITY FILE I/O & FORMATTER
