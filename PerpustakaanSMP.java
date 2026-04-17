@@ -6,12 +6,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.Scanner;
 
 public class PerpustakaanSMP {
-
-    // Deklarasi nama file konstan
-    private static final String FILE_PEGAWAI = "pegawai.txt";
-    private static final String FILE_SISWA = "siswa.txt";
-    private static final String FILE_BUKU = "buku.txt";
-    private static final String FILE_TRANSAKSI = "transaksi.txt";
+    private static final String FILE_PEGAWAI = "D:\\pemlan\\LK06\\pegawai.txt";
+    private static final String FILE_SISWA = "D:\\pemlan\\LK06\\siswa.txt";
+    private static final String FILE_BUKU = "D:\\pemlan\\LK06\\buku.txt";
+    private static final String FILE_TRANSAKSI = "D:\\pemlan\\LK06\\transaksi.txt";
 
     private static Scanner scanner = new Scanner(System.in);
     private static String loggedInPegawai = null;
@@ -20,8 +18,6 @@ public class PerpustakaanSMP {
         inisialisasiFile();
 
         System.out.println("=== SELAMAT DATANG DI SISTEM PERPUSTAKAAN SMP ===");
-        
-        // Menu Autentikasi sebelum masuk ke Menu Utama
         while (loggedInPegawai == null) {
             System.out.println("\n=== MENU AUTENTIKASI ===");
             System.out.println("1. Login Pegawai");
@@ -30,11 +26,9 @@ public class PerpustakaanSMP {
             String authPilihan = scanner.nextLine().trim();
 
             if (authPilihan.equals("1")) {
-                // CEK DISINI: Kalau belum ada pegawai sama sekali, langsung tolak!
                 if (hitungJumlahPegawai() == 0) {
                     System.out.println("\n[INFO] Belum terdapat data pegawai untuk login. Silakan pilih menu 2 untuk buat akun terlebih dahulu!");
                 } else {
-                    // Kalau sudah ada data, baru boleh masuk ke proses login
                     loginPegawai();
                 }
             } else if (authPilihan.equals("2")) {
@@ -79,8 +73,12 @@ public class PerpustakaanSMP {
     // ==========================================
 
     private static void inisialisasiFile() {
-        // Membuat file jika belum ada
         try {
+            File folder = new File("D:\\pemlan\\LK06");
+            if (!folder.exists()) {
+                folder.mkdirs(); 
+            }
+
             File fPegawai = new File(FILE_PEGAWAI);
             if (fPegawai.createNewFile()) {
                 System.out.println("[INFO] Sistem baru dijalankan. Silakan buat akun pegawai terlebih dahulu.");
@@ -108,7 +106,6 @@ public class PerpustakaanSMP {
     private static void buatAkunPegawai() {
         int jumlahPegawai = hitungJumlahPegawai();
         
-        // Membatasi maksimal 2 pegawai
         if (jumlahPegawai >= 2) {
             System.out.println("GAGAL: Kuota pegawai sudah penuh! Sistem hanya mengizinkan maksimal 2 pegawai.");
             return;
@@ -117,7 +114,6 @@ public class PerpustakaanSMP {
         System.out.print("Masukkan NIP Baru: ");
         String nip = scanner.nextLine().trim();
 
-        // Pengecekan NIP duplikat
         if (cekNipTerdaftar(nip)) {
             System.out.println("GAGAL: NIP tersebut sudah terdaftar! Silakan gunakan NIP lain atau Login.");
             return;
@@ -125,11 +121,13 @@ public class PerpustakaanSMP {
 
         System.out.print("Masukkan Nama Anda: ");
         String nama = scanner.nextLine().trim();
+        System.out.print("Masukkan Tanggal Lahir (dd-MM-yyyy): ");
+        String tglLahir = scanner.nextLine().trim();
         System.out.print("Masukkan Password: ");
         String password = scanner.nextLine().trim();
 
-        // Format: NIP,Nama,Password
-        String dataBaru = nip + "," + nama + "," + password;
+        // Format data: NIP, Nama, Password, Tanggal Lahir
+        String dataBaru = nip + "," + nama + "," + password + "," + tglLahir;
         tulisKeFile(FILE_PEGAWAI, dataBaru);
         System.out.println("BERHASIL: Akun pegawai atas nama " + nama + " berhasil dibuat! Silakan Login.");
     }
@@ -143,9 +141,7 @@ public class PerpustakaanSMP {
                     return true;
                 }
             }
-        } catch (IOException e) {
-            // Abaikan jika error membaca
-        }
+        } catch (IOException e) {}
         return false;
     }
 
@@ -160,9 +156,9 @@ public class PerpustakaanSMP {
             boolean ditemukan = false;
             while ((baris = br.readLine()) != null) {
                 String[] data = baris.split(","); 
-                // Pengecekan NIP dan Password
+                // data[0]=NIP, data[1]=Nama, data[2]=Password, data[3]=Tanggal Lahir
                 if (data.length >= 3 && data[0].equals(inputNip) && data[2].equals(inputPassword)) {
-                    loggedInPegawai = data[1]; // Mengambil Nama Pegawai
+                    loggedInPegawai = data[1]; 
                     ditemukan = true;
                     System.out.println("Login Berhasil! Selamat bekerja, " + loggedInPegawai);
                     break;
@@ -177,57 +173,317 @@ public class PerpustakaanSMP {
     }
 
     // ==========================================
-    // 2. KELOLA DATA (BUKU & SISWA)
+    // 2. KELOLA DATA BUKU
     // ==========================================
 
     private static void menuBuku() {
         System.out.println("\n--- KELOLA BUKU ---");
         System.out.println("1. Tambah Buku");
         System.out.println("2. Lihat Daftar Buku");
-        System.out.print("Pilih: ");
+        System.out.println("3. Update Data Buku");
+        System.out.println("4. Hapus Data Buku");
+        System.out.println("0. Kembali ke Menu Utama");
+        System.out.print("Pilih (0-4): ");
         String pil = scanner.nextLine().trim();
 
-        if (pil.equals("1")) {
-            System.out.print("Masukkan Kode Buku: ");
-            String kode = scanner.nextLine().trim();
-            System.out.print("Masukkan Judul Buku: ");
-            String judul = scanner.nextLine().trim();
-            System.out.print("Masukkan Jenis Buku: ");
-            String jenis = scanner.nextLine().trim();
-
-            String dataBaru = kode + "," + judul + "," + jenis;
-            tulisKeFile(FILE_BUKU, dataBaru);
-            System.out.println("Buku berhasil ditambahkan!");
-        } else if (pil.equals("2")) {
-            bacaDariFile(FILE_BUKU, "Daftar Buku (Kode | Judul | Jenis)");
+        switch (pil) {
+            case "1":
+                System.out.print("Masukkan Kode Buku: ");
+                String kode = scanner.nextLine().trim();
+                System.out.print("Masukkan Judul Buku: ");
+                String judul = scanner.nextLine().trim();
+                System.out.print("Masukkan Jenis Buku: ");
+                String jenis = scanner.nextLine().trim();
+                tulisKeFile(FILE_BUKU, kode + "," + judul + "," + jenis);
+                System.out.println("Buku berhasil ditambahkan!");
+                break;
+            case "2":
+                cetakTabel(FILE_BUKU, "DAFTAR BUKU PERPUSTAKAAN", 
+                           new String[]{"Kode Buku", "Judul Buku", "Jenis Buku"}, 
+                           new int[]{12, 30, 20});
+                break;
+            case "3":
+                updateBuku();
+                break;
+            case "4":
+                hapusBuku();
+                break;
+            case "0":
+                return;
+            default:
+                System.out.println("Pilihan tidak valid!");
         }
     }
+
+    private static void updateBuku() {
+        System.out.print("Masukkan Kode Buku yang akan diubah: ");
+        String targetKode = scanner.nextLine().trim();
+        
+        File fileAsli = new File(FILE_BUKU);
+        File fileTemp = new File(fileAsli.getParent(), "temp_buku.txt");
+        boolean ditemukan = false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(fileAsli));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(fileTemp))) {
+            
+            String baris;
+            while ((baris = br.readLine()) != null) {
+                String[] data = baris.split(",");
+                if (data.length >= 3 && data[0].equalsIgnoreCase(targetKode)) {
+                    ditemukan = true;
+                    String kodeFinal = data[0];
+                    String judulFinal = data[1];
+                    String jenisFinal = data[2];
+
+                    boolean lanjutUpdate = true;
+                    while (lanjutUpdate) {
+                        System.out.println("\n--- DATA BUKU SAAT INI ---");
+                        String border = "-------------------------------------------------------------------------";
+                        System.out.println(border);
+                        System.out.printf("| %-12s | %-30s | %-20s |\n", "Kode Buku", "Judul Buku", "Jenis Buku");
+                        System.out.println(border);
+                        System.out.printf("| %-12s | %-30s | %-20s |\n", kodeFinal, judulFinal, jenisFinal);
+                        System.out.println(border);
+
+                        System.out.println("\nPilih bagian yang ingin diubah:");
+                        System.out.println("1. Kode Buku");
+                        System.out.println("2. Judul Buku");
+                        System.out.println("3. Jenis Buku");
+                        System.out.println("0. Selesai & Simpan");
+                        System.out.print("Pilih (0-3): ");
+                        String pilUbah = scanner.nextLine().trim();
+
+                        switch (pilUbah) {
+                            case "1":
+                                System.out.print("Masukkan Kode Buku Baru: ");
+                                kodeFinal = scanner.nextLine().trim();
+                                break;
+                            case "2":
+                                System.out.print("Masukkan Judul Buku Baru: ");
+                                judulFinal = scanner.nextLine().trim();
+                                break;
+                            case "3":
+                                System.out.print("Masukkan Jenis Buku Baru: ");
+                                jenisFinal = scanner.nextLine().trim();
+                                break;
+                            case "0":
+                                lanjutUpdate = false;
+                                break;
+                            default:
+                                System.out.println("Pilihan tidak valid!");
+                        }
+                    }
+                    baris = kodeFinal + "," + judulFinal + "," + jenisFinal;
+                }
+                bw.write(baris);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saat update: " + e.getMessage());
+        }
+
+        if (ditemukan) {
+            fileAsli.delete();
+            fileTemp.renameTo(fileAsli);
+            System.out.println("Data buku berhasil diperbarui dan disimpan!");
+        } else {
+            fileTemp.delete();
+            System.out.println("Buku dengan Kode " + targetKode + " tidak ditemukan.");
+        }
+    }
+
+    private static void hapusBuku() {
+        System.out.print("Masukkan Kode Buku yang akan dihapus: ");
+        String targetKode = scanner.nextLine().trim();
+        
+        File fileAsli = new File(FILE_BUKU);
+        File fileTemp = new File(fileAsli.getParent(), "temp_buku.txt");
+        boolean ditemukan = false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(fileAsli));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(fileTemp))) {
+            
+            String baris;
+            while ((baris = br.readLine()) != null) {
+                String[] data = baris.split(",");
+                if (data.length >= 1 && data[0].equalsIgnoreCase(targetKode)) {
+                    ditemukan = true;
+                    continue; 
+                }
+                bw.write(baris);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saat menghapus: " + e.getMessage());
+        }
+
+        if (ditemukan) {
+            fileAsli.delete();
+            fileTemp.renameTo(fileAsli);
+            System.out.println("Buku berhasil dihapus dari sistem!");
+        } else {
+            fileTemp.delete();
+            System.out.println("Buku dengan Kode " + targetKode + " tidak ditemukan.");
+        }
+    }
+
+    // ==========================================
+    // 3. KELOLA DATA SISWA
+    // ==========================================
 
     private static void menuSiswa() {
         System.out.println("\n--- KELOLA SISWA ---");
         System.out.println("1. Tambah Siswa");
         System.out.println("2. Lihat Daftar Siswa");
-        System.out.print("Pilih: ");
+        System.out.println("3. Update Data Siswa");
+        System.out.println("4. Hapus Data Siswa");
+        System.out.println("0. Kembali ke Menu Utama");
+        System.out.print("Pilih (0-4): ");
         String pil = scanner.nextLine().trim();
 
-        if (pil.equals("1")) {
-            System.out.print("Masukkan NIS: ");
-            String nis = scanner.nextLine().trim();
-            System.out.print("Masukkan Nama: ");
-            String nama = scanner.nextLine().trim();
-            System.out.print("Masukkan Alamat: ");
-            String alamat = scanner.nextLine().trim();
+        switch (pil) {
+            case "1":
+                System.out.print("Masukkan NIS: ");
+                String nis = scanner.nextLine().trim();
+                System.out.print("Masukkan Nama: ");
+                String nama = scanner.nextLine().trim();
+                System.out.print("Masukkan Alamat: ");
+                String alamat = scanner.nextLine().trim();
+                tulisKeFile(FILE_SISWA, nis + "," + nama + "," + alamat);
+                System.out.println("Siswa berhasil ditambahkan!");
+                break;
+            case "2":
+                cetakTabel(FILE_SISWA, "DAFTAR SISWA TERDAFTAR", 
+                           new String[]{"NIS", "Nama Siswa", "Alamat"}, 
+                           new int[]{12, 25, 30});
+                break;
+            case "3":
+                updateSiswa();
+                break;
+            case "4":
+                hapusSiswa();
+                break;
+            case "0":
+                return;
+            default:
+                System.out.println("Pilihan tidak valid!");
+        }
+    }
 
-            String dataBaru = nis + "," + nama + "," + alamat;
-            tulisKeFile(FILE_SISWA, dataBaru);
-            System.out.println("Siswa berhasil ditambahkan!");
-        } else if (pil.equals("2")) {
-            bacaDariFile(FILE_SISWA, "Daftar Siswa (NIS | Nama | Alamat)");
+    private static void updateSiswa() {
+        System.out.print("Masukkan NIS Siswa yang akan diubah: ");
+        String targetNis = scanner.nextLine().trim();
+        
+        File fileAsli = new File(FILE_SISWA);
+        File fileTemp = new File(fileAsli.getParent(), "temp_siswa.txt");
+        boolean ditemukan = false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(fileAsli));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(fileTemp))) {
+            
+            String baris;
+            while ((baris = br.readLine()) != null) {
+                String[] data = baris.split(",");
+                if (data.length >= 3 && data[0].equalsIgnoreCase(targetNis)) {
+                    ditemukan = true;
+                    String nisFinal = data[0];
+                    String namaFinal = data[1];
+                    String alamatFinal = data[2];
+
+                    boolean lanjutUpdate = true;
+                    while (lanjutUpdate) {
+                        System.out.println("\n--- DATA SISWA SAAT INI ---");
+                        String border = "------------------------------------------------------------------------------";
+                        System.out.println(border);
+                        System.out.printf("| %-12s | %-25s | %-30s |\n", "NIS", "Nama Siswa", "Alamat");
+                        System.out.println(border);
+                        System.out.printf("| %-12s | %-25s | %-30s |\n", nisFinal, namaFinal, alamatFinal);
+                        System.out.println(border);
+
+                        System.out.println("\nPilih bagian yang ingin diubah:");
+                        System.out.println("1. NIS");
+                        System.out.println("2. Nama Siswa");
+                        System.out.println("3. Alamat");
+                        System.out.println("0. Selesai & Simpan");
+                        System.out.print("Pilih (0-3): ");
+                        String pilUbah = scanner.nextLine().trim();
+
+                        switch (pilUbah) {
+                            case "1":
+                                System.out.print("Masukkan NIS Baru: ");
+                                nisFinal = scanner.nextLine().trim();
+                                break;
+                            case "2":
+                                System.out.print("Masukkan Nama Baru: ");
+                                namaFinal = scanner.nextLine().trim();
+                                break;
+                            case "3":
+                                System.out.print("Masukkan Alamat Baru: ");
+                                alamatFinal = scanner.nextLine().trim();
+                                break;
+                            case "0":
+                                lanjutUpdate = false;
+                                break;
+                            default:
+                                System.out.println("Pilihan tidak valid!");
+                        }
+                    }
+                    baris = nisFinal + "," + namaFinal + "," + alamatFinal;
+                }
+                bw.write(baris);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saat update: " + e.getMessage());
+        }
+
+        if (ditemukan) {
+            fileAsli.delete();
+            fileTemp.renameTo(fileAsli);
+            System.out.println("Data Siswa berhasil diperbarui dan disimpan!");
+        } else {
+            fileTemp.delete();
+            System.out.println("Siswa dengan NIS " + targetNis + " tidak ditemukan.");
+        }
+    }
+
+    private static void hapusSiswa() {
+        System.out.print("Masukkan NIS Siswa yang akan dihapus: ");
+        String targetNis = scanner.nextLine().trim();
+        
+        File fileAsli = new File(FILE_SISWA);
+        File fileTemp = new File(fileAsli.getParent(), "temp_siswa.txt");
+        boolean ditemukan = false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(fileAsli));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(fileTemp))) {
+            
+            String baris;
+            while ((baris = br.readLine()) != null) {
+                String[] data = baris.split(",");
+                if (data.length >= 1 && data[0].equalsIgnoreCase(targetNis)) {
+                    ditemukan = true;
+                    continue; 
+                }
+                bw.write(baris);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saat menghapus: " + e.getMessage());
+        }
+
+        if (ditemukan) {
+            fileAsli.delete();
+            fileTemp.renameTo(fileAsli);
+            System.out.println("Siswa berhasil dihapus dari sistem!");
+        } else {
+            fileTemp.delete();
+            System.out.println("Siswa dengan NIS " + targetNis + " tidak ditemukan.");
         }
     }
 
     // ==========================================
-    // 3. TRANSAKSI (PINJAM & KEMBALI)
+    // 4. TRANSAKSI (PINJAM & KEMBALI)
     // ==========================================
 
     private static void transaksiPinjam() {
@@ -281,7 +537,7 @@ public class PerpustakaanSMP {
         String kodeTrx = scanner.nextLine().trim();
 
         File fileAsli = new File(FILE_TRANSAKSI);
-        File fileTemp = new File("temp_transaksi.txt");
+        File fileTemp = new File(fileAsli.getParent(), "temp_transaksi.txt");
         boolean ditemukan = false;
 
         try (BufferedReader br = new BufferedReader(new FileReader(fileAsli));
@@ -312,7 +568,7 @@ public class PerpustakaanSMP {
     }
 
     // ==========================================
-    // 4. LAPORAN
+    // 5. LAPORAN & FORMAT TABEL
     // ==========================================
 
     private static void lihatLaporan() {
@@ -320,12 +576,15 @@ public class PerpustakaanSMP {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         LocalDate hariIni = LocalDate.now();
         boolean adaData = false;
+        String border = "";
+        for(int i = 0; i < 88; i++) border += "-";
+
+        System.out.println(border);
+        System.out.printf("| %-18s | %-12s | %-12s | %-15s | %-15s |\n", "Kode Trx", "NIS", "Kode Buku", "Batas Kembali", "Status Denda");
+        System.out.println(border);
 
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_TRANSAKSI))) {
             String baris;
-            System.out.printf("%-15s | %-10s | %-10s | %-15s | %-15s\n", "Kode Trx", "NIS", "Kode Buku", "Batas Kembali", "Status Denda");
-            System.out.println("-------------------------------------------------------------------------------");
-            
             while ((baris = br.readLine()) != null) {
                 String[] data = baris.split(",");
                 if (data.length >= 6 && data[5].equals("0")) { 
@@ -338,20 +597,21 @@ public class PerpustakaanSMP {
                         statusDenda = "Telat " + telatHari + " hari";
                     }
 
-                    System.out.printf("%-15s | %-10s | %-10s | %-15s | %-15s\n", 
+                    System.out.printf("| %-18s | %-12s | %-12s | %-15s | %-15s |\n", 
                                       data[0], data[1], data[2], data[4], statusDenda);
                 }
             }
             if (!adaData) {
-                System.out.println("Semua buku telah dikembalikan dengan tertib.");
+                System.out.printf("| %-84s |\n", "Semua buku telah dikembalikan dengan tertib.");
             }
+            System.out.println(border);
         } catch (IOException | DateTimeParseException e) {
             System.out.println("Error membuat laporan: " + e.getMessage());
         }
     }
 
     // ==========================================
-    // 5. UTILITY FILE I/O (Write & Read Helper)
+    // 6. UTILITY FILE I/O & FORMATTER
     // ==========================================
 
     private static void tulisKeFile(String namaFile, String data) {
@@ -363,20 +623,43 @@ public class PerpustakaanSMP {
         }
     }
 
-    private static void bacaDariFile(String namaFile, String judulLaporan) {
+    private static void cetakTabel(String namaFile, String judulLaporan, String[] headers, int[] widths) {
         System.out.println("\n--- " + judulLaporan + " ---");
+
+        int totalWidth = 1; 
+        for (int w : widths) {
+            totalWidth += w + 3; 
+        }
+
+        String border = "";
+        for(int i = 0; i < totalWidth; i++) border += "-";
+
+        System.out.println(border);
+        System.out.print("|");
+        for (int i = 0; i < headers.length; i++) {
+            System.out.printf(" %-" + widths[i] + "s |", headers[i]);
+        }
+        System.out.println("\n" + border);
+
         try (BufferedReader br = new BufferedReader(new FileReader(namaFile))) {
             String baris;
             boolean kosong = true;
             while ((baris = br.readLine()) != null) {
-                System.out.println("- " + baris.replace(",", " | "));
+                String[] data = baris.split(",");
+                System.out.print("|");
+                for (int i = 0; i < widths.length; i++) {
+                    String value = (i < data.length) ? data[i] : "-";
+                    System.out.printf(" %-" + widths[i] + "s |", value);
+                }
+                System.out.println();
                 kosong = false;
             }
             if (kosong) {
-                System.out.println("(Data masih kosong)");
+                System.out.printf("| %-" + (totalWidth - 4) + "s |\n", "(Data Kosong) Silakan tambah data terlebih dahulu.");
             }
         } catch (IOException e) {
-            System.out.println("Terjadi kesalahan saat membaca file: " + e.getMessage());
+            System.out.printf("| %-" + (totalWidth - 4) + "s |\n", "Terjadi kesalahan saat membaca file.");
         }
+        System.out.println(border);
     }
 }
